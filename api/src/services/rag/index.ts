@@ -1,4 +1,5 @@
 import { config } from "@/config";
+import { insertIntegrationLog } from "@/db/repositories/integration-logs";
 import { logger } from "@/logger";
 import { NO_ANSWER_TEXT } from "@/providers/llm/prompts";
 import { searchChunks } from "@/services/rag/repository";
@@ -36,6 +37,13 @@ export async function answerQuestion(
         .filter((hit) => hit.score >= config.RAG_MIN_SCORE)
         // Re-number after filtering so citations stay contiguous ([1], [2], ...).
         .map((hit, index) => ({ ...hit, n: index + 1 }));
+
+    void insertIntegrationLog({
+        integration: "rag",
+        kind: "info",
+        message: `retrieve: ${relevant.length}/${hits.length} chunks cleared the floor (top ${(hits[0]?.score ?? 0).toFixed(2)})`,
+        meta: { retrieved: hits.length, kept: relevant.length, floor: config.RAG_MIN_SCORE },
+    });
 
     if (relevant.length === 0) {
         logger.info(

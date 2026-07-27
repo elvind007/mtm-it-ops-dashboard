@@ -3,6 +3,7 @@ import { Router } from "express";
 import { getAlerter, getLlmProvider, getNotionSource } from "@/container";
 import { listDashboardAreas } from "@/db/repositories/areas";
 import { listRecentEvents } from "@/db/repositories/events";
+import { listIntegrationLogs } from "@/db/repositories/integration-logs";
 import { listSyncRuns } from "@/db/repositories/sync-runs";
 import { asyncHandler } from "@/http/async-handler";
 import { runSync } from "@/services/sync";
@@ -48,6 +49,21 @@ areasRouter.get(
     asyncHandler(async (req, res) => {
         const runs = await listSyncRuns(clampLimit(req.query.limit, 10, 100));
         res.json({ runs });
+    }),
+);
+
+const asFilter = (raw: unknown): string | undefined =>
+    typeof raw === "string" && raw.trim() !== "" ? raw.trim() : undefined;
+
+areasRouter.get(
+    "/logs",
+    asyncHandler(async (req, res) => {
+        const logs = await listIntegrationLogs({
+            integration: asFilter(req.query.integration),
+            level: asFilter(req.query.level),
+            limit: clampLimit(req.query.limit, 50, 200),
+        });
+        res.json({ logs });
     }),
 );
 

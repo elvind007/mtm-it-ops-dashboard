@@ -1,5 +1,6 @@
 import type { NotionArea, NotionSource } from "@/types";
 import { config } from "@/config";
+import { insertIntegrationLog, sanitizeUrl } from "@/db/repositories/integration-logs";
 import { logger } from "@/logger";
 import { mapNotionPage } from "@/providers/notion/mapper";
 
@@ -80,20 +81,31 @@ export class NotionClient implements NotionSource {
     }
 
     private async queryOnce(startCursor: string | undefined): Promise<NotionQueryResponse> {
+        const url = `${NOTION_API_BASE}/databases/${this.databaseId}/query`;
         for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-            const response = await fetch(
-                `${NOTION_API_BASE}/databases/${this.databaseId}/query`,
-                {
-                    method: "POST",
-                    headers: {
-                        // Never log this header -- it's the bearer credential.
-                        Authorization: `Bearer ${this.apiKey}`,
-                        "Notion-Version": this.notionVersion,
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(startCursor ? { start_cursor: startCursor } : {}),
+            const startedAt = Date.now();
+            const response = await fetch(url, {
+                method: "POST",
+                headers: {
+                    // Never log this header -- it's the bearer credential.
+                    Authorization: `Bearer ${this.apiKey}`,
+                    "Notion-Version": this.notionVersion,
+                    "Content-Type": "application/json",
                 },
-            );
+                body: JSON.stringify(startCursor ? { start_cursor: startCursor } : {}),
+            });
+
+            void insertIntegrationLog({
+                integration: "notion",
+                kind: response.ok ? "api_call" : "error",
+                level: response.ok ? "info" : "warn",
+                message: `POST databases/query → ${response.status}${attempt > 1 ? ` (attempt ${attempt})` : ""}`,
+                method: "POST",
+                // sanitizeUrl strips the query string; the database id in the path stays.
+                url: sanitizeUrl(url),
+                statusCode: response.status,
+                durationMs: Date.now() - startedAt,
+            });
 
             if (response.ok) {
                 return (await response.json()) as NotionQueryResponse;

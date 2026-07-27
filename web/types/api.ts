@@ -85,6 +85,21 @@ export interface HealthResponse {
     };
 }
 
+export interface IntegrationLog {
+    id: string;
+    createdAt: string;
+    integration: string;
+    kind: string;
+    level: string;
+    message: string;
+    method: string | null;
+    url: string | null;
+    statusCode: number | null;
+    durationMs: number | null;
+    syncRunId: string | null;
+    meta: Record<string, unknown> | null;
+}
+
 export interface Citation {
     n: number;
     source: string;

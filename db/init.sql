@@ -140,3 +140,34 @@ CREATE TABLE IF NOT EXISTS document_chunks (
 -- Cosine distance, matching the normalized embeddings both providers emit.
 CREATE INDEX IF NOT EXISTS document_chunks_embedding_idx
     ON document_chunks USING hnsw (embedding vector_cosine_ops);
+
+-- ---------------------------------------------------------------------------
+-- integration_logs: append-only operational log of what each integration did,
+-- in the same style as status_events / sync_runs. Powers the Logs page.
+--
+-- Deliberately additive: the Pino console logs remain the primary record. These
+-- rows exist so the UI can show a filterable, per-integration trail without
+-- shipping a log aggregator. Never store secrets here -- `url` is host + path
+-- only, and `meta` carries small safe extras (model, tokens, a short error),
+-- never API keys, webhook URLs, Authorization headers, or full bodies.
+--
+-- Retention is out of scope for this sample: the table grows unbounded. A real
+-- deployment would add a TTL / partition-by-day drop, noted in README.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS integration_logs (
+    id           bigserial PRIMARY KEY,
+    created_at   timestamptz NOT NULL DEFAULT now(),
+    integration  text        NOT NULL,   -- notion | llm | slack | rag | http
+    kind         text        NOT NULL,   -- api_call | sync | alert | error | info
+    level        text        NOT NULL,   -- info | warn | error
+    message      text        NOT NULL,
+    method       text,
+    url          text,                    -- host + path only, never secrets/query tokens
+    status_code  integer,
+    duration_ms  integer,
+    sync_run_id  bigint      REFERENCES sync_runs (id) ON DELETE SET NULL,
+    meta         jsonb                    -- small safe extras only (tokens, model, short error <=200 chars)
+);
+
+CREATE INDEX IF NOT EXISTS integration_logs_integration_idx ON integration_logs (integration, created_at DESC);
+CREATE INDEX IF NOT EXISTS integration_logs_created_at_idx  ON integration_logs (created_at DESC);

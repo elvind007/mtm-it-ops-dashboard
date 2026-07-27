@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-import { dashboardApi, dashboardKeys } from "@/api/dashboardApi";
+import { dashboardApi, dashboardKeys, type LogsQuery } from "@/api/dashboardApi";
 
 /**
  * The board refetches on an interval rather than over a socket.
@@ -39,6 +39,15 @@ export function useEvents(limit = 25) {
         queryKey: dashboardKeys.events(limit),
         queryFn: async () => (await dashboardApi.events(limit)).data.events,
         refetchInterval: REFETCH_MS,
+    });
+}
+
+export function useLogs(query: LogsQuery = {}) {
+    return useQuery({
+        queryKey: dashboardKeys.logs(query),
+        queryFn: async () => (await dashboardApi.logs(query)).data.logs,
+        refetchInterval: REFETCH_MS,
+        refetchOnWindowFocus: true,
     });
 }
 

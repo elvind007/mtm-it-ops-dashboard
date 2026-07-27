@@ -2,6 +2,7 @@ import { config } from "@/config";
 import { pool } from "@/db/pool";
 import { listDashboardAreas, upsertArea } from "@/db/repositories/areas";
 import { markAlertOutcome, recordStatusEvent } from "@/db/repositories/events";
+import { insertIntegrationLog } from "@/db/repositories/integration-logs";
 import { findCachedSummary, saveSummary } from "@/db/repositories/summaries";
 import { finishSyncRun, startSyncRun } from "@/db/repositories/sync-runs";
 import { logger } from "@/logger";
@@ -86,6 +87,16 @@ async function executeSync(trigger: SyncTrigger, deps: SyncDeps): Promise<SyncOu
     };
 
     const runId = await startSyncRun(trigger, source.kind);
+    const startedAt = Date.now();
+    // Attributed to notion: a sync is fundamentally the Notion poll cycle, and the
+    // Logs page surfaces it under the Notion tab alongside the HTTP calls it makes.
+    void insertIntegrationLog({
+        integration: "notion",
+        kind: "sync",
+        message: `sync started (${trigger}, source=${source.kind})`,
+        syncRunId: runId,
+        meta: { trigger, source: source.kind },
+    });
     const counters: SyncCounters = {
         areasSeen: 0,
         areasChanged: 0,
@@ -136,7 +147,7 @@ async function executeSync(trigger: SyncTrigger, deps: SyncDeps): Promise<SyncOu
                 const summary = enriched.summary;
 
                 if (eventId && alerting) {
-                    await dispatchAlert(eventId, area, previousStatus, summary, alerter, llm, counters);
+                    await dispatchAlert(runId, eventId, area, previousStatus, summary, alerter, llm, counters);
                 }
             } catch (err) {
                 // One bad area must not abandon the rest of the sync.
@@ -150,17 +161,36 @@ async function executeSync(trigger: SyncTrigger, deps: SyncDeps): Promise<SyncOu
 
         await finishSyncRun(runId, counters);
         logger.info({ trigger, ...counters, errors }, "sync complete");
+        void insertIntegrationLog({
+            integration: "notion",
+            kind: "sync",
+            level: errors > 0 ? "warn" : "info",
+            message: `sync complete: ${counters.areasSeen} seen, ${counters.areasChanged} changed, ${counters.summariesGenerated} generated, ${counters.summariesCached} cached, ${counters.alertsSent} alerts, ${errors} errors`,
+            durationMs: Date.now() - startedAt,
+            syncRunId: runId,
+            meta: { ...counters, errors },
+        });
 
         return { runId, source: source.kind, errors, ...counters };
     } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         await finishSyncRun(runId, counters, message);
         logger.error({ err, trigger }, "sync failed");
+        void insertIntegrationLog({
+            integration: "notion",
+            kind: "error",
+            level: "error",
+            message: `sync failed: ${message}`,
+            durationMs: Date.now() - startedAt,
+            syncRunId: runId,
+            meta: { error: message.slice(0, 200) },
+        });
         throw err;
     }
 }
 
 async function dispatchAlert(
+    runId: string,
     eventId: string,
     area: NotionArea,
     previousStatus: string | null,
@@ -171,6 +201,12 @@ async function dispatchAlert(
 ): Promise<void> {
     if (!alerter.enabled) {
         await markAlertOutcome(eventId, "skipped");
+        void insertIntegrationLog({
+            integration: "slack",
+            kind: "alert",
+            message: `alert skipped (disabled) — ${area.title} → ${area.status}`,
+            syncRunId: runId,
+        });
         return;
     }
 
@@ -189,12 +225,26 @@ async function dispatchAlert(
         });
         await markAlertOutcome(eventId, "sent");
         counters.alertsSent += 1;
+        void insertIntegrationLog({
+            integration: "slack",
+            kind: "alert",
+            message: `alert sent — ${area.title} → ${area.status}`,
+            syncRunId: runId,
+        });
     } catch (err) {
         // A Slack outage must not fail the sync; the failure is recorded on the
         // event row so it is visible in the Activity feed.
         const message = err instanceof Error ? err.message : String(err);
         await markAlertOutcome(eventId, "failed", message);
         logger.error({ err, area: area.title }, "slack alert failed");
+        void insertIntegrationLog({
+            integration: "slack",
+            kind: "error",
+            level: "error",
+            message: `alert failed — ${area.title} → ${area.status}: ${message}`,
+            syncRunId: runId,
+            meta: { error: message.slice(0, 200) },
+        });
     }
 }
 

@@ -1,4 +1,5 @@
 import { config } from "@/config";
+import { insertIntegrationLog } from "@/db/repositories/integration-logs";
 import { logger } from "@/logger";
 import {
     NO_ANSWER_TEXT,
@@ -92,12 +93,35 @@ export class OpenAiCompatibleProvider implements LlmProvider {
     // -----------------------------------------------------------------------
 
     private async complete(body: unknown): Promise<Completion> {
+        const startedAt = Date.now();
         for (let attempt = 1; ; attempt += 1) {
             try {
-                return readCompletion(await this.send(body));
+                const completion = readCompletion(await this.send(body));
+                void insertIntegrationLog({
+                    integration: "llm",
+                    kind: "api_call",
+                    message: `chat/completions ${this.model} ok`,
+                    durationMs: Date.now() - startedAt,
+                    meta: {
+                        provider: this.kind,
+                        model: this.model,
+                        tokensIn: completion.tokensIn,
+                        tokensOut: completion.tokensOut,
+                    },
+                });
+                return completion;
             } catch (error) {
                 const failure = asRequestError(error);
                 if (!failure.retryable || attempt >= MAX_ATTEMPTS) {
+                    void insertIntegrationLog({
+                        integration: "llm",
+                        kind: "error",
+                        level: "error",
+                        message: `chat/completions ${this.model} failed: ${failure.message}`,
+                        statusCode: failure.status ?? null,
+                        durationMs: Date.now() - startedAt,
+                        meta: { provider: this.kind, model: this.model, error: failure.message.slice(0, 200) },
+                    });
                     throw failure;
                 }
 
