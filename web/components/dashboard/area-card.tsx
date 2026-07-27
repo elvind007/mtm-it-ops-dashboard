@@ -1,10 +1,38 @@
 import { formatDistanceToNow } from "date-fns";
-import { ExternalLink, Sparkles, Zap } from "lucide-react";
+import { AlertTriangle, ExternalLink, Sparkles, Zap } from "lucide-react";
 
 import { StatusBadge, statusMeta } from "@/components/status-badge";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Area } from "@/types/api";
+
+/**
+ * Risk level → colour token. Reuses the status hues so a "high" risk chip reads the
+ * same red as a Blocked badge. The level word is always present, so colour is
+ * reinforcement, never the sole signal.
+ */
+const RISK_HUE: Record<string, string> = {
+    high: "var(--status-blocked)",
+    medium: "var(--status-at-risk)",
+    low: "var(--status-on-track)",
+    none: "var(--muted-foreground)",
+};
+
+function RiskChip({ level }: { level: string }) {
+    const hue = RISK_HUE[level] ?? "var(--muted-foreground)";
+    return (
+        <span
+            className="inline-flex items-center gap-1 rounded-sm border px-1.5 py-px text-[10px] font-medium normal-case"
+            style={{
+                color: hue,
+                borderColor: `color-mix(in oklab, ${hue} 35%, transparent)`,
+                backgroundColor: `color-mix(in oklab, ${hue} 12%, transparent)`,
+            }}
+        >
+            {level} risk
+        </span>
+    );
+}
 
 function relative(iso: string | null): string {
     if (!iso) return "unknown";
@@ -70,9 +98,10 @@ export function AreaCard({ area }: { area: Area }) {
 
                 {summary ? (
                     <div className="rounded-md bg-muted/50 p-3">
-                        <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+                        <div className="mb-1.5 flex flex-wrap items-center gap-1.5 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
                             <Sparkles className="size-3" aria-hidden />
                             AI summary
+                            {summary.riskLevel && <RiskChip level={summary.riskLevel} />}
                             {summary.confidence === "low" && (
                                 <span className="rounded-sm bg-muted px-1 py-px text-[10px] normal-case">
                                     limited data
@@ -89,7 +118,9 @@ export function AreaCard({ area }: { area: Area }) {
                     </div>
                 )}
 
-                {area.blockers && (
+                {/* Prefer the AI's one-line headline blocker; fall back to the raw
+                    Notion blockers text when the model didn't surface one. */}
+                {summary?.headlineBlocker ? (
                     <div
                         className="flex items-start gap-2 rounded-md px-2.5 py-2 text-xs"
                         style={{
@@ -98,9 +129,23 @@ export function AreaCard({ area }: { area: Area }) {
                                 "color-mix(in oklab, var(--status-blocked) 10%, transparent)",
                         }}
                     >
-                        <span className="mt-0.5 font-semibold">Blocked on:</span>
-                        <span className="min-w-0 flex-1">{area.blockers}</span>
+                        <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+                        <span className="min-w-0 flex-1">{summary.headlineBlocker}</span>
                     </div>
+                ) : (
+                    area.blockers && (
+                        <div
+                            className="flex items-start gap-2 rounded-md px-2.5 py-2 text-xs"
+                            style={{
+                                color: statusMeta("Blocked").ink,
+                                backgroundColor:
+                                    "color-mix(in oklab, var(--status-blocked) 10%, transparent)",
+                            }}
+                        >
+                            <span className="mt-0.5 font-semibold">Blocked on:</span>
+                            <span className="min-w-0 flex-1">{area.blockers}</span>
+                        </div>
+                    )
                 )}
 
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
