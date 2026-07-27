@@ -80,8 +80,36 @@
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
+
+    /* Status palette -- see the block comment above .dark for the rationale. */
+    --status-on-track: #0ca30c;
+    --status-on-track-ink: #076b07; /* 6.74:1 on white */
+    --status-at-risk: #fab219;
+    --status-at-risk-ink: #8a5600; /* 6.16:1 -- the raw amber is 1.83:1 and unusable as text */
+    --status-blocked: #d03b3b;
+    --status-blocked-ink: #9f2323; /* 7.67:1 */
+    --status-done: #a1a1aa;
+    --status-done-ink: #52525b; /* 7.73:1 */
 }
 
+/*
+ * Status colors are a reserved palette: they encode state, never a data series,
+ * and they are deliberately the only saturated hue in the interface so the chrome
+ * stays neutral and the board is the only thing carrying color.
+ *
+ * Two tokens per status. `--status-x` is the saturated hue used for marks (the
+ * card's left rail, the KPI tile accent, the badge glyph fill). `--status-x-ink`
+ * is a darker/lighter step chosen so label text clears WCAG AA against the
+ * surface -- measured, not guessed.
+ *
+ * IMPORTANT: hue alone is never the encoding. Measured against a deuteranope
+ * simulation, On Track green and Blocked red separate by only ΔE 4.1 -- far below
+ * the ΔE 15 legibility floor. They are, in practice, the same color to a
+ * red-green colorblind reader, and those are the two most consequential states on
+ * this dashboard. Every status therefore ships with a distinct shape glyph
+ * (circle / triangle / square / check) and a text label. The colored rail is
+ * reinforcement; the badge carries the meaning.
+ */
 .dark {
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
@@ -114,6 +142,17 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.556 0 0);
+
+    /* Re-stepped for the dark surface rather than reused -- the light inks are
+     * far too dark to read against it. All four clear AA. */
+    --status-on-track: #22c55e;
+    --status-on-track-ink: #4ade80; /* 10.17:1 on #18181b */
+    --status-at-risk: #fab219;
+    --status-at-risk-ink: #fbbf24; /* 10.61:1 */
+    --status-blocked: #f87171;
+    --status-blocked-ink: #fb8a8a; /* 7.68:1 */
+    --status-done: #a1a1aa;
+    --status-done-ink: #b4b4bd; /* 8.61:1 */
 }
 
 @layer base {

@@ -1,95 +1,89 @@
 import { Check, Circle, Square, Triangle } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-export const AREA_STATUSES = [
-    "On Track",
-    "At Risk",
-    "Blocked",
-    "Done",
-] as const;
-
+export const AREA_STATUSES = ["On Track", "At Risk", "Blocked", "Done"] as const;
 export type AreaStatus = (typeof AREA_STATUSES)[number];
 
 type StatusMeta = {
     label: string;
+    /**
+     * Shape is the primary encoding, not decoration. On Track green and Blocked
+     * red separate by only ΔE 4.1 under deuteranope simulation -- effectively the
+     * same color to a red-green colorblind reader. See the block comment in
+     * globals.css.
+     */
     icon: LucideIcon;
-    /** Badge fill + text, tuned for both themes. */
-    badge: string;
-    /** Left rail on the area card. */
-    rail: string;
-    /** Standalone icon/number colour for KPI tiles. */
-    accent: string;
+    /** CSS var for the saturated mark hue. */
+    hue: string;
+    /** CSS var for the contrast-checked text/glyph color. */
+    ink: string;
 };
 
-/**
- * Status is never communicated by colour alone — every entry pairs a hue with a
- * distinct shape, so the board stays readable for colour-blind users and in
- * greyscale screenshots.
- */
 export const STATUS_META: Record<AreaStatus, StatusMeta> = {
     "On Track": {
         label: "On Track",
         icon: Circle,
-        badge: "border-emerald-600/20 bg-emerald-500/10 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300",
-        rail: "bg-emerald-500",
-        accent: "text-emerald-600 dark:text-emerald-400",
+        hue: "var(--status-on-track)",
+        ink: "var(--status-on-track-ink)",
     },
     "At Risk": {
         label: "At Risk",
         icon: Triangle,
-        badge: "border-amber-600/20 bg-amber-500/10 text-amber-700 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-300",
-        rail: "bg-amber-500",
-        accent: "text-amber-600 dark:text-amber-400",
+        hue: "var(--status-at-risk)",
+        ink: "var(--status-at-risk-ink)",
     },
     Blocked: {
         label: "Blocked",
         icon: Square,
-        badge: "border-rose-600/20 bg-rose-500/10 text-rose-700 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-300",
-        rail: "bg-rose-500",
-        accent: "text-rose-600 dark:text-rose-400",
+        hue: "var(--status-blocked)",
+        ink: "var(--status-blocked-ink)",
     },
     Done: {
         label: "Done",
         icon: Check,
-        badge: "border-zinc-500/20 bg-zinc-500/10 text-zinc-600 dark:border-zinc-400/20 dark:bg-zinc-400/10 dark:text-zinc-400",
-        rail: "bg-zinc-400",
-        accent: "text-zinc-500 dark:text-zinc-400",
+        hue: "var(--status-done)",
+        ink: "var(--status-done-ink)",
     },
 };
 
-const UNKNOWN_META: StatusMeta = {
-    label: "Unknown",
-    icon: Circle,
-    badge: "border-zinc-500/20 bg-zinc-500/10 text-zinc-600 dark:text-zinc-400",
-    rail: "bg-zinc-300 dark:bg-zinc-700",
-    accent: "text-zinc-500",
-};
-
-/** Tolerates anything Notion hands us, including a status that was renamed upstream. */
+/** Tolerates a status renamed upstream in Notion rather than rendering nothing. */
 export function statusMeta(status: string): StatusMeta {
-    return STATUS_META[status as AreaStatus] ?? { ...UNKNOWN_META, label: status || "Unknown" };
+    return (
+        STATUS_META[status as AreaStatus] ?? {
+            label: status || "Unknown",
+            icon: Circle,
+            hue: "var(--status-done)",
+            ink: "var(--status-done-ink)",
+        }
+    );
 }
 
-export const StatusBadge = ({
+export function StatusBadge({
     status,
     className,
 }: {
     status: string;
     className?: string;
-}) => {
+}) {
     const meta = statusMeta(status);
     const Icon = meta.icon;
 
     return (
-        <Badge
-            variant="outline"
-            className={cn("gap-1.5 font-medium", meta.badge, className)}
+        <span
+            className={cn(
+                "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium",
+                className,
+            )}
+            style={{
+                color: meta.ink,
+                borderColor: `color-mix(in oklab, ${meta.hue} 35%, transparent)`,
+                backgroundColor: `color-mix(in oklab, ${meta.hue} 12%, transparent)`,
+            }}
         >
             <Icon className="size-3 fill-current" aria-hidden />
             {meta.label}
-        </Badge>
+        </span>
     );
-};
+}

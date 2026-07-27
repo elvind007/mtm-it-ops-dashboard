@@ -1,13 +1,13 @@
 import AppContent from "@/components/admin/app-content";
-import { NoRecordFound } from "@/components/placeholders";
+import { DashboardView } from "./dashboard-view";
 
 export default function DashboardPage() {
     return (
         <AppContent
             title="Operational areas"
-            description="Status pulled from Notion, enriched with AI summaries."
+            description="Status sourced from Notion, enriched with cached AI summaries."
         >
-            <NoRecordFound />
+            <DashboardView />
         </AppContent>
     );
 }
