@@ -10,7 +10,14 @@ export default defineConfig({
     test: {
         environment: "node",
         include: ["tests/**/*.test.ts"],
-        // Tests cover pure logic only -- no live network, no database.
-        // Integration coverage is called out as future work in the README.
+        // Config validation runs at import time, so any module that transitively
+        // reaches it needs a valid environment. Nothing here talks to a real
+        // database -- tests cover pure logic only, with integration coverage
+        // called out as future work in the README.
+        env: {
+            NODE_ENV: "test",
+            DATABASE_URL: "postgres://test:test@localhost:5432/test",
+            LOG_LEVEL: "fatal",
+        },
     },
 });
