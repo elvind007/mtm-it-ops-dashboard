@@ -72,6 +72,9 @@ const schema = z.object({
     RAG_MIN_SCORE: z.coerce.number().min(0).max(1).default(0.35),
     RAG_CHUNK_SIZE: z.coerce.number().int().positive().default(800),
     RAG_CHUNK_OVERLAP: z.coerce.number().int().min(0).default(150),
+    /** Where the seed markdown lives. The image only copies src/, so in Docker the
+     *  docs are bind-mounted and this points at them; blank -> module-relative default. */
+    RAG_SEED_DIR: z.preprocess(blankToUndefined, z.string().optional()),
 });
 
 export type Config = z.infer<typeof schema> & {

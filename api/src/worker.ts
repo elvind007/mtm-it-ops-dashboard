@@ -2,6 +2,7 @@ import { config } from "@/config";
 import { getAlerter, getLlmProvider, getNotionSource } from "@/container";
 import { closeDatabase, waitForDatabase } from "@/db/pool";
 import { logger } from "@/logger";
+import { seedRagIfEmpty } from "@/services/rag/seed";
 import { runSync } from "@/services/sync";
 import type { SyncTrigger } from "@/types";
 
@@ -49,6 +50,10 @@ async function main(): Promise<void> {
         },
         "worker started",
     );
+
+    // Fire-and-forget: seed the RAG corpus if it is empty, so the Ask page works after
+    // a fresh `docker compose up` without a manual `seed:rag`. Never blocks the sync loop.
+    if (config.RAG_ENABLED) void seedRagIfEmpty();
 
     if (config.SYNC_ON_BOOT) await tick("boot");
 

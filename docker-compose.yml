@@ -32,6 +32,10 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgres://itops:itops@db:5432/itops}
+      # The image copies only src/, so the RAG seed docs are bind-mounted below.
+      RAG_SEED_DIR: /app/docs/seed
+    volumes:
+      - ./docs/seed:/app/docs/seed:ro
     depends_on:
       db:
         condition: service_healthy
@@ -52,6 +56,10 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgres://itops:itops@db:5432/itops}
+      # Auto-seeds the RAG corpus on boot when empty; needs the seed docs mounted.
+      RAG_SEED_DIR: /app/docs/seed
+    volumes:
+      - ./docs/seed:/app/docs/seed:ro
     depends_on:
       db:
         condition: service_healthy
