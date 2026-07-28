@@ -55,7 +55,7 @@ const schema = z.object({
     ALERT_ON_FIRST_SEEN: bool.default(false),
 
     // --- Sync loop ---
-    SYNC_INTERVAL_MS: z.coerce.number().int().min(5_000).default(60_000),
+    SYNC_INTERVAL_MS: z.coerce.number().int().min(5_000).default(30_000),
     SYNC_ON_BOOT: bool.default(true),
 
     // --- RAG ---

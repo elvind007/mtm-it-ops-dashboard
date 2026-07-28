@@ -9,7 +9,7 @@ import { SyncBar } from "@/components/dashboard/sync-bar";
 import { NoRecordFound, ServerError } from "@/components/placeholders";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
-import { useAreas, useSyncNow } from "@/hooks/use-dashboard";
+import { useAreas, useAutoSync, useSyncNow } from "@/hooks/use-dashboard";
 import type { Area } from "@/types/api";
 
 /** Operational urgency, most-urgent first. Unknown statuses sort last. */
@@ -38,6 +38,10 @@ export function DashboardView() {
     const { data, isPending, isError, refetch } = useAreas();
     const sync = useSyncNow();
     const [activeStatus, setActiveStatus] = useState<string | null>(null);
+
+    // Force a fresh sync on open / refocus so a just-made Notion change is on screen
+    // within seconds, not a full poll interval later. Guarded + silent (see the hook).
+    useAutoSync(data?.lastSync?.finishedAt ?? data?.lastSync?.startedAt ?? null);
 
     const visibleAreas = useMemo(
         () => (data ? orderAreas(data.areas, activeStatus) : []),

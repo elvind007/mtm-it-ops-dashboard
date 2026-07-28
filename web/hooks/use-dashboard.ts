@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 
 import { dashboardApi, dashboardKeys, type LogsQuery } from "@/api/dashboardApi";
@@ -49,6 +50,64 @@ export function useLogs(query: LogsQuery = {}) {
         refetchInterval: REFETCH_MS,
         refetchOnWindowFocus: true,
     });
+}
+
+/**
+ * A sync is considered fresh enough to skip an on-open auto-sync if the last one
+ * finished within this window. Roughly one frontend refetch cadence: long enough that
+ * opening/refocusing the tab doesn't hammer Notion, short enough that a page you just
+ * opened reflects a Notion change made moments ago.
+ */
+const AUTOSYNC_STALE_MS = 15_000;
+
+/**
+ * Force a fresh sync when the dashboard opens or the tab regains focus.
+ *
+ * The worker already polls on a timer, but that leaves a window where a Notion change
+ * made just before you look is not on screen yet. This closes it for the case that
+ * actually misleads a viewer -- opening the page -- without moving the sync pipeline
+ * onto every request: it fires only when the last sync is stale and none is in flight.
+ *
+ * Deliberately silent. The visible "Sync now" button reports success/failure; an
+ * auto-sync racing the worker (409) or hitting a transient upstream error should not
+ * throw a toast at someone who never asked for it. `runSync`'s advisory lock and
+ * content-hash cache keep the extra call cheap and non-overlapping.
+ */
+export function useAutoSync(lastSyncAt: string | null) {
+    const queryClient = useQueryClient();
+    // Held in a ref so the focus listener always sees the latest value without being
+    // re-attached on every refetch.
+    const lastSyncRef = useRef(lastSyncAt);
+    lastSyncRef.current = lastSyncAt;
+    const inFlight = useRef(false);
+
+    useEffect(() => {
+        const maybeSync = async () => {
+            if (inFlight.current || document.visibilityState !== "visible") return;
+            const at = lastSyncRef.current;
+            const age = at ? Date.now() - new Date(at).getTime() : Number.POSITIVE_INFINITY;
+            if (age < AUTOSYNC_STALE_MS) return;
+
+            inFlight.current = true;
+            try {
+                await dashboardApi.sync();
+                await queryClient.invalidateQueries({ queryKey: dashboardKeys.areas });
+                await queryClient.invalidateQueries({ queryKey: ["events"] });
+            } catch {
+                // Silent by design -- see the doc comment above.
+            } finally {
+                inFlight.current = false;
+            }
+        };
+
+        void maybeSync();
+        window.addEventListener("focus", maybeSync);
+        document.addEventListener("visibilitychange", maybeSync);
+        return () => {
+            window.removeEventListener("focus", maybeSync);
+            document.removeEventListener("visibilitychange", maybeSync);
+        };
+    }, [queryClient]);
 }
 
 export function useSyncNow() {
