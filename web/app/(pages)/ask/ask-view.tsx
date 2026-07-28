@@ -2,6 +2,7 @@
 
 import { useMutation } from "@tanstack/react-query";
 import { CornerDownLeft, FileText, Info, Sparkles } from "lucide-react";
+import Link from "next/link";
 import { useRef, useState } from "react";
 
 import { dashboardApi } from "@/api/dashboardApi";
@@ -168,15 +169,16 @@ function TurnView({ turn }: { turn: ChatTurn }) {
                     {turn.citations.length > 0 && (
                         <div className="flex flex-wrap gap-1.5">
                             {turn.citations.map((c) => (
-                                <span
+                                <Link
                                     key={c.n}
+                                    href={`/documents?doc=${encodeURIComponent(c.source)}`}
                                     title={`similarity ${c.score.toFixed(2)}`}
-                                    className="inline-flex items-center gap-1 rounded-md border bg-card px-1.5 py-0.5 text-[11px] text-muted-foreground"
+                                    className="inline-flex items-center gap-1 rounded-md border bg-card px-1.5 py-0.5 text-[11px] text-muted-foreground hover:bg-accent hover:text-foreground"
                                 >
                                     <FileText className="size-3" aria-hidden />
                                     <span className="font-mono">[{c.n}]</span>
                                     {c.title}
-                                </span>
+                                </Link>
                             ))}
                         </div>
                     )}

@@ -1,4 +1,10 @@
-import { Activity, LayoutDashboard, MessagesSquare, ScrollText } from "lucide-react";
+import {
+    Activity,
+    BookText,
+    LayoutDashboard,
+    MessagesSquare,
+    ScrollText,
+} from "lucide-react";
 import { usePathname } from "next/navigation";
 
 import type { SidebarGroup } from "../../types/sidebar";
@@ -22,6 +28,13 @@ export function useAppMenuItems(): SidebarGroup[] {
                     label: "Ask",
                     active: pathname === "/ask",
                     icon: MessagesSquare,
+                    submenus: [],
+                },
+                {
+                    href: "/documents",
+                    label: "Documents",
+                    active: pathname.startsWith("/documents"),
+                    icon: BookText,
                     submenus: [],
                 },
                 {

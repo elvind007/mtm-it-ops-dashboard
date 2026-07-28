@@ -2,6 +2,8 @@ import Axi from "@/services/interceptors/Axi";
 import type {
     AreasResponse,
     ChatResponse,
+    DocumentDetail,
+    DocumentSummary,
     HealthResponse,
     IntegrationLog,
     StatusEvent,
@@ -20,6 +22,8 @@ export const dashboardKeys = {
     events: (limit: number) => ["events", limit] as const,
     runs: (limit: number) => ["sync-runs", limit] as const,
     logs: (query: LogsQuery) => ["logs", query] as const,
+    documents: ["documents"] as const,
+    document: (source: string) => ["documents", source] as const,
 };
 
 export const dashboardApi = {
@@ -33,4 +37,7 @@ export const dashboardApi = {
         Axi.get<{ logs: IntegrationLog[] }>("/logs", {
             params: { integration, level, limit },
         }),
+    documents: () => Axi.get<{ documents: DocumentSummary[] }>("/documents"),
+    document: (source: string) =>
+        Axi.get<DocumentDetail>(`/documents/${encodeURIComponent(source)}`),
 };

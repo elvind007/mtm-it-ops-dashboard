@@ -52,6 +52,26 @@ export function useLogs(query: LogsQuery = {}) {
     });
 }
 
+/** Corpus is seed-static; only changes on re-seed / restart. */
+const DOC_STALE_MS = 5 * 60_000;
+
+export function useDocuments() {
+    return useQuery({
+        queryKey: dashboardKeys.documents,
+        queryFn: async () => (await dashboardApi.documents()).data.documents,
+        staleTime: DOC_STALE_MS,
+    });
+}
+
+export function useDocument(source: string | null) {
+    return useQuery({
+        queryKey: dashboardKeys.document(source ?? ""),
+        queryFn: async () => (await dashboardApi.document(source!)).data,
+        enabled: Boolean(source),
+        staleTime: DOC_STALE_MS,
+    });
+}
+
 /**
  * A sync is considered fresh enough to skip an on-open auto-sync if the last one
  * finished within this window. Roughly one frontend refetch cadence: long enough that
