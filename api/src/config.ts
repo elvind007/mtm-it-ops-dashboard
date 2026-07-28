@@ -66,10 +66,10 @@ const schema = z.object({
     EMBEDDING_DIM: z.coerce.number().int().positive().default(384),
     EMBEDDING_API_KEY: z.preprocess(blankToUndefined, z.string().optional()),
     EMBEDDING_BASE_URL: z.string().default("https://api.openai.com/v1"),
-    RAG_TOP_K: z.coerce.number().int().positive().default(5),
+    RAG_TOP_K: z.coerce.number().int().positive().default(10),
     /** Cosine similarity floor. Below this we answer "not in the indexed documents"
      *  without calling the LLM at all. */
-    RAG_MIN_SCORE: z.coerce.number().min(0).max(1).default(0.35),
+    RAG_MIN_SCORE: z.coerce.number().min(0).max(1).default(0.25),
     RAG_CHUNK_SIZE: z.coerce.number().int().positive().default(800),
     RAG_CHUNK_OVERLAP: z.coerce.number().int().min(0).default(150),
     /** Where the seed markdown lives. The image only copies src/, so in Docker the

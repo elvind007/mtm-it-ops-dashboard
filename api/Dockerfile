@@ -3,8 +3,13 @@
 # The API is a handful of modules with no bundling requirements, so a build step
 # would add a stage and a source-map story for no benefit. Types are still fully
 # enforced -- `npm run typecheck` runs tsc --noEmit in CI and locally.
+#
+# Debian slim (glibc) rather than Alpine (musl): the optional `local` embedding
+# provider pulls in onnxruntime-node, whose prebuilt native binary is glibc-linked
+# and fails to load on Alpine (missing ld-linux-x86-64.so.2). slim is a bit larger
+# but is the reliable base for the ONNX runtime.
 
-FROM node:24-alpine
+FROM node:24-slim
 
 WORKDIR /app
 

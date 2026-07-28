@@ -5,11 +5,12 @@ import type { EmbeddingProvider } from "@/types";
  * 384 dims), running fully offline once the model is downloaded and cached --
  * no API key, no per-query network call.
  *
- * `@huggingface/transformers` is deliberately NOT a dependency of this project:
- * it pulls in an ONNX runtime and is large, and the zero-setup default path
- * (`EMBEDDING_PROVIDER=hash`) does not need it. This provider loads it via a
- * dynamic import specifically so requiring it stays opt-in -- `npm install
- * @huggingface/transformers` plus `EMBEDDING_PROVIDER=local` is the entire upgrade.
+ * `@huggingface/transformers` is a dependency so that `EMBEDDING_PROVIDER=local`
+ * works out of the box (it pulls in a sizeable ONNX runtime; the ~90MB model
+ * weights still download lazily on the first embed call, not at build time). It is
+ * still loaded via a dynamic import so the module only initializes when `local` is
+ * actually selected -- the zero-config default (`EMBEDDING_PROVIDER=hash`) never
+ * touches it and pays no startup cost.
  */
 
 const MODEL_ID = "Xenova/all-MiniLM-L6-v2";
