@@ -6,6 +6,7 @@ import { listRecentEvents } from "@/db/repositories/events";
 import { listIntegrationLogs } from "@/db/repositories/integration-logs";
 import { listSyncRuns } from "@/db/repositories/sync-runs";
 import { asyncHandler } from "@/http/async-handler";
+import { HttpError } from "@/http/errors";
 import { runSync } from "@/services/sync";
 
 export const areasRouter: Router = Router();
@@ -77,11 +78,23 @@ areasRouter.get(
 areasRouter.post(
     "/sync",
     asyncHandler(async (_req, res) => {
-        const outcome = await runSync("manual", {
-            source: getNotionSource(),
-            llm: getLlmProvider(),
-            alerter: getAlerter(),
-        });
+        let outcome;
+        try {
+            outcome = await runSync("manual", {
+                source: getNotionSource(),
+                llm: getLlmProvider(),
+                alerter: getAlerter(),
+            });
+        } catch {
+            // runSync already logged the failure in full and recorded it to
+            // integration_logs (visible on the Logs page). Translate it into a clean
+            // 502 so "Sync now" tells the user the upstream source is unreachable
+            // instead of surfacing a bare "Internal server error".
+            throw new HttpError(
+                502,
+                "Sync failed: the Notion source could not be reached. See the Logs page for details.",
+            );
+        }
 
         if (outcome.skipped === "locked") {
             res.status(409).json({

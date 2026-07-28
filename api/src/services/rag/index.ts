@@ -54,5 +54,15 @@ export async function answerQuestion(
     }
 
     const answer = await llm.answerWithContext(question, relevant);
+
+    // The system prompt tells the model to reply with exactly NO_ANSWER_TEXT when the
+    // retrieved passages don't support an answer. When it does, those passages didn't
+    // actually ground anything, so presenting them as citations is misleading -- drop
+    // them. This is most visible with weak embeddings, where an off-topic chunk can
+    // just clear the score floor and reach the model only to be refused.
+    if (answer.trim() === NO_ANSWER_TEXT) {
+        return { answer, citations: [], usedLlm: true };
+    }
+
     return { answer, citations: relevant, usedLlm: true };
 }

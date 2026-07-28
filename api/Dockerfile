@@ -15,6 +15,9 @@ RUN npm ci --omit=dev --no-audit --no-fund \
 
 COPY src ./src
 COPY tsconfig.json ./
+# The zero-config (blank .env) path serves Notion from these bundled fixtures at
+# runtime; without them a keyless `docker compose up` boots to an empty dashboard.
+COPY fixtures ./fixtures
 
 ENV NODE_ENV=production
 EXPOSE 8080
