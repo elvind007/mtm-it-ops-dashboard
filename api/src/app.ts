@@ -6,6 +6,7 @@ import { errorHandler, notFoundHandler } from "@/http/errors";
 import { requestLogger } from "@/http/request-log";
 import { areasRouter } from "@/routes/areas";
 import { chatRouter } from "@/routes/chat";
+import { documentsRouter } from "@/routes/documents";
 import { healthRouter } from "@/routes/health";
 
 /**
@@ -22,6 +23,7 @@ export function createApp(): Express {
     app.use("/api", healthRouter);
     app.use("/api", areasRouter);
     app.use("/api", chatRouter);
+    app.use("/api", documentsRouter);
 
     app.use(notFoundHandler);
     app.use(errorHandler);

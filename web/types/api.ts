@@ -113,3 +113,14 @@ export interface ChatResponse {
     /** False when retrieval found nothing above the similarity floor. */
     usedLlm: boolean;
 }
+
+export interface DocumentSummary {
+    source: string;
+    title: string;
+    chunkCount: number;
+    createdAt: string;
+}
+
+export interface DocumentDetail extends DocumentSummary {
+    content: string;
+}

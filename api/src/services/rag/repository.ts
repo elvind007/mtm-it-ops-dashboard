@@ -100,3 +100,59 @@ export async function countChunks(): Promise<number> {
     const { rows } = await query<{ count: string }>("SELECT COUNT(*) AS count FROM document_chunks");
     return Number(rows[0]?.count ?? 0);
 }
+
+export interface DocumentSummary {
+    source: string;
+    title: string;
+    chunkCount: number;
+    createdAt: string;
+}
+
+export interface DocumentDetail extends DocumentSummary {
+    content: string;
+}
+
+/**
+ * The seeded corpus for the Documents reference page. `chunkCount` comes from the
+ * same rows retrieval reads, so the list reflects what is actually indexed (an
+ * un-embedded document would show zero chunks) rather than what is on disk.
+ */
+export async function listDocuments(): Promise<DocumentSummary[]> {
+    const { rows } = await query<Record<string, unknown>>(
+        `SELECT d.source, d.title, d.created_at, COUNT(c.id) AS chunk_count
+         FROM documents d
+         LEFT JOIN document_chunks c ON c.document_id = d.id
+         GROUP BY d.id
+         ORDER BY d.title`,
+    );
+
+    return rows.map((r) => ({
+        source: r.source as string,
+        title: r.title as string,
+        chunkCount: Number(r.chunk_count ?? 0),
+        createdAt: new Date(r.created_at as string).toISOString(),
+    }));
+}
+
+/** Full content of one document, keyed by filename. Null when it isn't in the corpus. */
+export async function getDocumentBySource(source: string): Promise<DocumentDetail | null> {
+    const { rows } = await query<Record<string, unknown>>(
+        `SELECT d.source, d.title, d.content, d.created_at, COUNT(c.id) AS chunk_count
+         FROM documents d
+         LEFT JOIN document_chunks c ON c.document_id = d.id
+         WHERE d.source = $1
+         GROUP BY d.id`,
+        [source],
+    );
+
+    const row = rows[0];
+    if (!row) return null;
+
+    return {
+        source: row.source as string,
+        title: row.title as string,
+        content: row.content as string,
+        chunkCount: Number(row.chunk_count ?? 0),
+        createdAt: new Date(row.created_at as string).toISOString(),
+    };
+}
