@@ -81,7 +81,7 @@ export interface RetrievedChunk {
 export interface LlmProvider {
     /** e.g. "openai-compatible", "anthropic", "mock". */
     readonly kind: string;
-    /** Human-readable, shown in the UI and Slack footer. e.g. "llama-3.3-70b-versatile". */
+    /** Human-readable, shown in the UI and Slack footer. e.g. "openai/gpt-oss-120b". */
     readonly model: string;
     summarizeArea(input: SummaryInput): Promise<SummaryResult>;
     /** Answers strictly from `passages`; must refuse when they do not contain the answer. */

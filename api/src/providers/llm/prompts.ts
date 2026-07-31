@@ -18,8 +18,10 @@ import type {
  * Participates in the summary cache key alongside the area's content hash. Bump it
  * whenever the wording below changes, otherwise summaries written under the old
  * prompt are served forever from the cache and the change appears to do nothing.
+ * The model is not part of the key, so a change of default model is also a reason
+ * to bump -- v2 is the move off Groq's retired Llama 3.3 70B.
  */
-export const PROMPT_VERSION = "v1";
+export const PROMPT_VERSION = "v2";
 
 // ---------------------------------------------------------------------------
 // Summarization

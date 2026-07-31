@@ -40,8 +40,16 @@ const schema = z.object({
     LLM_PROVIDER: z.enum(["openai-compatible", "anthropic", "mock"]).default("openai-compatible"),
     LLM_BASE_URL: z.string().default("https://api.groq.com/openai/v1"),
     LLM_API_KEY: z.preprocess(blankToUndefined, z.string().optional()),
-    LLM_MODEL: z.string().default("llama-3.3-70b-versatile"),
-    LLM_MAX_TOKENS: z.coerce.number().int().positive().default(300),
+    LLM_MODEL: z.string().default("openai/gpt-oss-120b"),
+    /**
+     * Far above the ~150 tokens a summary occupies, because the default model reasons
+     * and those tokens come out of the same budget: measured summary calls spend
+     * 510-830 tokens thinking before the first byte of JSON. Exhausting the budget
+     * mid-thought is not a truncated summary but a 400 from the JSON-mode validator,
+     * so the cap is set well clear of the observed worst case. It is a ceiling, not a
+     * reservation -- unused headroom costs nothing.
+     */
+    LLM_MAX_TOKENS: z.coerce.number().int().positive().default(1536),
     LLM_TEMPERATURE: z.coerce.number().min(0).max(2).default(0.2),
     LLM_TIMEOUT_MS: z.coerce.number().int().positive().default(30_000),
 

@@ -104,7 +104,7 @@ EMBEDDING_PROVIDER=local
 RAG_MIN_SCORE=0.3
 ```
 
-Switching embedders on an existing volume does **not** re-embed old chunks — run `docker compose exec api npm run seed:rag`, or wipe the volume and let boot auto-seed. More deploy detail is in the setup guide.
+Switching embedders on an existing volume does **not** re-embed old chunks — run `docker compose exec api npm run seed:rag`, or wipe the volume and let boot auto-seed. Full Ask/RAG walkthrough: [docs/HOW-ASK-RAG-WORKS.md](docs/HOW-ASK-RAG-WORKS.md). Deploy detail is in the setup guide.
 
 ---
 
@@ -201,7 +201,7 @@ api/           Express API + worker (same image, different command)
 web/           Next.js UI (Dashboard, Activity, Ask, Documents, Logs)
 db/init.sql    Schema on first Postgres boot
 docs/seed/     RAG seed markdown (auto-seeded on worker boot)
-docs/          SETUP-AND-RUN, SETUP-NOTION-SLACK, dbdiagram
+docs/          SETUP-AND-RUN, SETUP-NOTION-SLACK, HOW-ASK-RAG-WORKS, dbdiagram
 docker-compose.yml
 ```
 
